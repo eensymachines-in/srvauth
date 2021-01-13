@@ -1,0 +1,33 @@
+version: '3'
+# this can be then plugged to a larger yml while where you want all the services to work in a swarm
+# here we are just making a file for a single service to run
+services:
+  srvauth:
+    build: /home/pi/eensymachines-in/srvauth
+    stop_grace_period: 2s
+    # devices:
+    #   # for wiringpi test we would need the gpiomem
+    #   - "/dev/gpiomem:/dev/gpiomem"
+    #   - "/dev/i2c-1"
+    volumes:
+      - "/home/pi/go/bin/:/home/pi/go/bin/"
+      - "/var/local/srvauth:/var/local/srvauth"
+      - "/sys:/sys" # for the go code to access it, we would need the acess to sys
+      - "/etc/timezone:/etc/timezone"
+      - "/etc/localtime:/etc/localtime"
+    ports:
+      - "35001:35001"
+    # relay configuration environment, picked up by go code when initializing devices
+    # make sure there is no space before the names or the variable values, the go code does not trim white spaces
+    environment:
+    #   - RELAYS=IN1,IN2,IN3,IN4
+    #   - RELAYPINS=40,38,36,32
+    #   - RELAYINVT=true
+      - LOGF=/var/local/srvauth/device.log
+      - BASEURL=http://localhost:8080/
+      - HALTSOCK=/var/local/srvauth/halt.sock
+    tty: true
+    stdin_open: true
+    container_name: srvauth
+    # command: ["tail", "-f", "/dev/null"]
+    command: ["/home/pi/eensymachines-in/srvauth/srvauth","-flog=false", "-verbose=true"]
