@@ -20,9 +20,6 @@ services:
     # relay configuration environment, picked up by go code when initializing devices
     # make sure there is no space before the names or the variable values, the go code does not trim white spaces
     environment:
-    #   - RELAYS=IN1,IN2,IN3,IN4
-    #   - RELAYPINS=40,38,36,32
-    #   - RELAYINVT=true
       - LOGF=/var/local/srvauth/device.log
       - BASEURL=http://localhost:8080/
       - HALTSOCK=/var/local/srvauth/halt.sock
