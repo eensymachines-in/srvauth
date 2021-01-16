@@ -1,5 +1,8 @@
 package main
 
+/*Microservices from the main line function will need a auxilliary microservice to verify registration and indicate accordingly
+If the device is registered, this microservice will just drop off letting others in the main line cotinue, while if there is a problem with the registration it drops a signal on a socket to stop all main line operations. This service also can self-register the device but that incase only when the device serial is not blacklisted.
+Incase the device serial is blacklisted, no registration and hence no further operation s*/
 import (
 	"encoding/json"
 	"flag"
@@ -37,6 +40,7 @@ func haltService() {
 	// this can help send a message to the socket
 	c, err := net.Dial("unix", haltSock)
 	if err != nil {
+		// You need someone listening on the socket else this Dial action will fail
 		log.Errorf("Failed to halt authentication service, %s", err)
 		return
 	}
@@ -57,7 +61,11 @@ func main() {
 	if valEnv != "" {
 		logFile = valEnv
 	}
-	valEnv = os.Getenv("baseURL")
+	flag.Parse()
+	closeLogFile := utl.CustomLog(Flog, FVerbose, logFile) // Log direction and the level of logging
+	defer closeLogFile()
+
+	valEnv = os.Getenv("BASEURL")
 	if valEnv != "" {
 		baseURL = valEnv
 	}
@@ -65,21 +73,25 @@ func main() {
 	if valEnv != "" {
 		haltSock = valEnv
 	}
-	// Log direction and the level of logging
-	flag.Parse()
-	closeLogFile := utl.CustomLog(Flog, FVerbose, logFile)
-	defer closeLogFile()
+	log.WithFields(log.Fields{
+		"logfile":  logFile,
+		"baseurl":  baseURL,
+		"haltsock": haltSock,
+	}).Debug("SrvAuth: now read all the environment")
 
 	// Lsitening on system signals
 	// start, interrupt := utl.SysSignalListener()
 	// go start()
-
 	reg, err := auth.ThisDeviceReg(user)
 	if err != nil {
 		log.Errorf("Failed to read local device registration details")
 		haltService()
 		return
 	}
+	log.WithFields(log.Fields{
+		"reg": reg,
+	}).Debug("SrvAuth: Local device registration details")
+
 	regurl := fmt.Sprintf("%sdevices/%s", baseURL, reg.Serial)
 	ok, err := auth.IsRegistered(regurl)
 	if err != nil {
@@ -88,6 +100,7 @@ func main() {
 		return
 	}
 	if !ok {
+		log.Info("Device not found registered, now attempting to register..")
 		// device is not registered, so device will register itself
 		if reg.Register(fmt.Sprintf("%s/devices/", baseURL)) != nil {
 			log.Errorf("Failed to register device %s", err)
@@ -96,21 +109,23 @@ func main() {
 		}
 		log.Info("Device successfully registered itself")
 		return
-	} else {
-		// device is already registered
-		// check for ownership and the lock status
-		owned, err := auth.IsOwnedBy(regurl, user)
-		locked, err := auth.IsLocked(regurl)
-		if err != nil {
-			log.Errorf("Failed to verify device details %s", err)
-			haltService()
-			return
-		}
-		if !owned || locked {
-			log.Errorf("Device ownership invalid, or the device is locked. %s", err)
-			haltService()
-			return
-		} //else the service just exists, and let other microservices continue
 	}
+	// device is already registered
+	// check for ownership and the lock status
+	owned, err := auth.IsOwnedBy(regurl, user)
+	locked, err := auth.IsLocked(regurl)
+	if err != nil {
+		log.Errorf("Failed to verify device details %s", err)
+		haltService()
+		return
+	}
+	if !owned || locked {
+		log.WithFields(log.Fields{
+			"owned": owned,
+			"lock":  locked,
+		}).Errorf("Device ownership invalid, or the device is locked. %s", err)
+		haltService()
+		return
+	} //else the service just exists, and let other microservices continue
 
 }

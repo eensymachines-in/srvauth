@@ -2,6 +2,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/eensymachines-in/auth v0.0.0-20210112005653-0c9bf72870ce h1:SPQOu7aQDA6EEe4BV3Yh0WnhS9e4Ax+IoIZ6fQAOh+4=
 github.com/eensymachines-in/auth v0.0.0-20210112005653-0c9bf72870ce/go.mod h1:3nkj1JvMiNeveEZvQpbyGzhqbPMSniNGWmJu126DGkM=
+github.com/eensymachines-in/auth v0.0.0-20210115001735-97433e5d1bfe h1:4yunPAgC/iZj2GgYZnu3lb+En56dN3otqv8yncuIwLs=
+github.com/eensymachines-in/auth v0.0.0-20210115001735-97433e5d1bfe/go.mod h1:3nkj1JvMiNeveEZvQpbyGzhqbPMSniNGWmJu126DGkM=
 github.com/eensymachines-in/utilities v1.0.1 h1:5qrMVSlCcMP02psjdV67QvOJGM3VRtlit0uGwWV7JUE=
 github.com/eensymachines-in/utilities v1.0.1/go.mod h1:uraqkydvY9NpQzdbYQkP+HyPI1ZnMirwieSHcg1iTcU=
 github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8 h1:DujepqpGd1hyOd7aW59XpK7Qymp8iy83xq74fLr21is=

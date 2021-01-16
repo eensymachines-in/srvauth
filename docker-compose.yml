@@ -5,20 +5,12 @@ services:
   srvauth:
     build: /home/pi/eensymachines-in/srvauth
     stop_grace_period: 2s
-    # devices:
-    #   # for wiringpi test we would need the gpiomem
-    #   - "/dev/gpiomem:/dev/gpiomem"
-    #   - "/dev/i2c-1"
     volumes:
       - "/home/pi/go/bin/:/home/pi/go/bin/"
       - "/var/local/srvauth:/var/local/srvauth"
       - "/sys:/sys" # for the go code to access it, we would need the acess to sys
       - "/etc/timezone:/etc/timezone"
       - "/etc/localtime:/etc/localtime"
-    ports:
-      - "35001:35001"
-    # relay configuration environment, picked up by go code when initializing devices
-    # make sure there is no space before the names or the variable values, the go code does not trim white spaces
     environment:
       - LOGF=/var/local/srvauth/device.log
       - BASEURL=http://localhost:8080/
