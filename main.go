@@ -122,13 +122,13 @@ func main() {
 		return
 	}
 	regurl := fmt.Sprintf("%s/devices/%s", baseURL, reg.Serial)
-	var status *auth.DeviceStatus
+	status := &auth.DeviceStatus{}
 	if auth.DeviceStatusOnCloud(regurl, status) != nil {
 		log.Error("Failed to query device status on cloud, servers are unreachable or busy")
 		haltService()
 		return
 	}
-	if status == nil {
+	if (auth.DeviceStatus{}) == *status {
 		log.Warn("Device is not registered on the cloud")
 		log.Info("Now attempting to register this device on the cloud")
 		if err := reg.Register(fmt.Sprintf("%s/devices", baseURL)); err != nil {
