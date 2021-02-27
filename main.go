@@ -8,8 +8,9 @@ import (
 	"flag"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
-	"time"
+	"strings"
 
 	"github.com/eensymachines-in/auth"
 	utl "github.com/eensymachines-in/utilities"
@@ -24,9 +25,9 @@ var (
 	// FVerbose :  determines the level of log
 	FVerbose bool
 	// owner of the device, this should come from the environment loaded on the container
-	user     = "kneeru@gmail.com"
-	baseURL  = "http://localhost:8080/"
-	haltSock = "/var/local/srvauth/halt.sock"
+	user     = ""
+	baseURL  = ""
+	haltSock = ""
 )
 
 func init() {
@@ -37,26 +38,38 @@ func init() {
 
 // haltService : drops the
 func haltService() {
-	// this can help send a message to the socket
-	c, err := net.Dial("unix", haltSock)
-	if err != nil {
-		// You need someone listening on the socket else this Dial action will fail
-		log.Errorf("Failed to halt authentication service, %s", err)
-		return
+	// NOTE: there are multiple sockets listed in haltsock
+	// this uService is capable of communicating to multiple such uServices for halting action
+	socks := strings.Split(haltSock, ",")
+	for _, sock := range socks {
+		// this can help send a message to the socket
+		c, err := net.Dial("unix", sock)
+		if err != nil {
+			// You need someone listening on the socket else this Dial action will fail
+			log.Errorf("srvauth: Failed to connect socket, cannot halt service, %s", err)
+			return
+		}
+		// halt command is pushed to the socket, all the other microservices listening on the same socket will have to quit as well
+		data, _ := json.Marshal(map[string]int{"interrupt": 1})
+		c.Write(data)
 	}
-	// halt command is pushed to the socket, all the other microservices listening on the same socket will have to quit as well
-	data, _ := json.Marshal(map[string]bool{"interrupt": true})
-	c.Write(data)
-	<-time.After(1 * time.Second) // let the command assimilate in the sock
 	// time to close this service
 	return
 }
 
-func main() {
-	log.Info("SrvAuth: initializing...")
-	defer log.Warn("SrvAuth: now closing service..")
+func isOnline() bool {
+	_, err := http.Get(fmt.Sprintf("%s/ping", baseURL))
+	if err != nil {
+		return false
+	}
+	return true
+}
 
-	// Here we read all the environment variables
+func main() {
+	log.Info("srvauth: initializing...")
+	defer log.Warn("srvauth: now closing service..")
+
+	// ++++++++++++ Reading environment variables
 	valEnv := os.Getenv("LOGF")
 	if valEnv != "" {
 		logFile = valEnv
@@ -73,12 +86,23 @@ func main() {
 	if valEnv != "" {
 		haltSock = valEnv
 	}
+	valEnv = os.Getenv("USER")
+	if valEnv != "" {
+		user = valEnv
+	}
 	log.WithFields(log.Fields{
 		"logfile":  logFile,
 		"baseurl":  baseURL,
 		"haltsock": haltSock,
+		"user":     user,
 	}).Debug("SrvAuth: now read all the environment")
-
+	if haltSock == "" {
+		panic("srvauth: invalid halt-socket to communicate to, cannot continue")
+	}
+	if user == "" || baseURL == "" {
+		haltService()
+		panic("srvauth: Invalid owner email or the uplink base url")
+	}
 	// Lsitening on system signals
 	// start, interrupt := utl.SysSignalListener()
 	// go start()
@@ -90,9 +114,14 @@ func main() {
 	}
 	log.WithFields(log.Fields{
 		"reg": reg,
-	}).Debug("SrvAuth: Local device registration details")
-
-	regurl := fmt.Sprintf("%sdevices/%s", baseURL, reg.Serial)
+	}).Debug("srvauth: Local device registration details")
+	// We check for internet connectivity before making calls to the authorization service
+	if !isOnline() {
+		log.Error("The device needs to be online on bootup, We tried pinging the uplink servers, could not reach. Check your WiFi and internet connectivity")
+		haltService()
+		return
+	}
+	regurl := fmt.Sprintf("%s/devices/%s", baseURL, reg.Serial)
 	ok, err := auth.IsRegistered(regurl)
 	if err != nil {
 		log.Errorf("Failed to verify if device is registered %s", err)
@@ -100,14 +129,14 @@ func main() {
 		return
 	}
 	if !ok {
-		log.Info("Device not found registered, now attempting to register..")
+		log.Info("Device not registered, now attempting to register..")
 		// device is not registered, so device will register itself
 		if reg.Register(fmt.Sprintf("%s/devices/", baseURL)) != nil {
 			log.Errorf("Failed to register device %s", err)
 			haltService()
 			return
 		}
-		log.Info("Device successfully registered itself")
+		log.Info("Device registered..")
 		return
 	}
 	// device is already registered
@@ -115,7 +144,7 @@ func main() {
 	owned, err := auth.IsOwnedBy(regurl, user)
 	locked, err := auth.IsLocked(regurl)
 	if err != nil {
-		log.Errorf("Failed to verify device details %s", err)
+		log.Errorf("Failed to verify device ownership and lock status %s", err)
 		haltService()
 		return
 	}
@@ -127,5 +156,4 @@ func main() {
 		haltService()
 		return
 	} //else the service just exists, and let other microservices continue
-
 }

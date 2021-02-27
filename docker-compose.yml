@@ -13,8 +13,9 @@ services:
       - "/etc/localtime:/etc/localtime"
     environment:
       - LOGF=/var/local/srvauth/device.log
-      - BASEURL=http://localhost:8080/
+      - BASEURL=http://auth.eensymachines.in
       - HALTSOCK=/var/local/srvauth/halt.sock
+      - USER=kneerunjun@gmail.com
     tty: true
     stdin_open: true
     container_name: srvauth
