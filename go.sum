@@ -7,8 +7,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible h1:7qlOGliEKZXTDg6OTjfoBKDXWrumCAMpl/TFQ4/5kLM=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
-github.com/eensymachines-in/auth/v2 v2.0.4 h1:jTbW+uBxtfmntIZRZYup+MosoThYRGuhIfJfJA4Ki3s=
-github.com/eensymachines-in/auth/v2 v2.0.4/go.mod h1:JYqDlA9SUw+Dp/IfqUFKDypTf6Ibw4VSL74f4sP/yk4=
+github.com/eensymachines-in/auth/v2 v2.0.5 h1:W3zDIs9ldS1B62CewqQzdOMWqo3TTDPh3IpCISblzp8=
+github.com/eensymachines-in/auth/v2 v2.0.5/go.mod h1:JYqDlA9SUw+Dp/IfqUFKDypTf6Ibw4VSL74f4sP/yk4=
 github.com/eensymachines-in/errx v1.0.0 h1:ticTLMjaqLdHjW4ozUYJMN1nR6obSwBVNWM7vcVB8hs=
 github.com/eensymachines-in/errx v1.0.0/go.mod h1:mlZdWb4nmyJQmjqZmFsvFCcxFrkokdRn3ERofX+UB5A=
 github.com/eensymachines-in/utilities v1.0.2-0.20210121173211-8443fd74e811 h1:XZ5jeAKDy+YT2E5auT7nmWtDCD5LVV4O509NmDe/H3E=
