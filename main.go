@@ -12,7 +12,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/eensymachines-in/auth"
+	auth "github.com/eensymachines-in/auth/v2"
 	utl "github.com/eensymachines-in/utilities"
 	log "github.com/sirupsen/logrus"
 )
@@ -122,38 +122,31 @@ func main() {
 		return
 	}
 	regurl := fmt.Sprintf("%s/devices/%s", baseURL, reg.Serial)
-	ok, err := auth.IsRegistered(regurl)
-	if err != nil {
-		log.Errorf("Failed to verify if device is registered %s", err)
+	var status *auth.DeviceStatus
+	if auth.DeviceStatusOnCloud(regurl, status) != nil {
+		log.Error("Failed to query device status on cloud, servers are unreachable or busy")
 		haltService()
 		return
 	}
-	if !ok {
-		log.Info("Device not registered, now attempting to register..")
-		// device is not registered, so device will register itself
-		if reg.Register(fmt.Sprintf("%s/devices/", baseURL)) != nil {
+	if status == nil {
+		log.Warn("Device is not registered on the cloud")
+		log.Info("Now attempting to register this device on the cloud")
+		if err := reg.Register(fmt.Sprintf("%s/devices", baseURL)); err != nil {
 			log.Errorf("Failed to register device %s", err)
 			haltService()
 			return
 		}
-		log.Info("Device registered..")
 		return
 	}
-	// device is already registered
-	// check for ownership and the lock status
-	owned, err := auth.IsOwnedBy(regurl, user)
-	locked, err := auth.IsLocked(regurl)
-	if err != nil {
-		log.Errorf("Failed to verify device ownership and lock status %s", err)
+	if status.Lock {
+		log.Error("Device is locked by the admin, cannot continue. Please contact an admin to unlock the device")
 		haltService()
 		return
 	}
-	if !owned || locked {
-		log.WithFields(log.Fields{
-			"owned": owned,
-			"lock":  locked,
-		}).Errorf("Device ownership invalid, or the device is locked. %s", err)
+	if status.User != user {
+		log.Error("Device ownership is invalid, cannot continue. Please contact an admin to reassign the device to a valid account")
 		haltService()
 		return
-	} //else the service just exists, and let other microservices continue
+	} // device is registered and everything is a green signal
+	// the container from here on just exits & lets the services continue
 }
