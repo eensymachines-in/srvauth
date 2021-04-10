@@ -10,5 +10,5 @@ WORKDIR /home/pi/eensymachines-in/srvauth
 # now creating folder for the code and repository 
 # since we commit to use 1.15 and above we would be using GO Modules
 COPY . .
-RUN go mod download 
-RUN go build -o srvauth .
+# RUN go mod download 
+# RUN go build -o srvauth .

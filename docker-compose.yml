@@ -1,29 +1,16 @@
 version: '3'
 # this can be then plugged to a larger yml while where you want all the services to work in a swarm
 # here we are just making a file for a single service to run
-volumes:
-  gobin: 
-    driver: ${GOBINDIR}
-  sys: 
-    driver: /sys
-  timez: 
-    driver: ${TIMEZ}
-  lcltm: 
-    driver: ${LCLTM}
-  lcldir: 
-    driver: ${LCLDIR}
-  sockdir: 
-    driver: ${SOCKSDIR}
 services:
   srvauth:
     build: ${REPODIR}/srvauth
     volumes:
-      - gobin:${GOBINDIR}
-      - sys:/sys
-      - timez:${TIMEZ}
-      - lcltm${LCLTM}
-      - lcldir${LCLDIR}
-      - sockdir${SOCKSDIR}
+      - ${GOBINDIR}:${GOBINDIR}
+      - /sys:/sys
+      - ${TIMEZ}:${TIMEZ}
+      - ${LCLTM}:${LCLTM}
+      - ${LCLDIR}:${LCLDIR}
+      - ${SOCKSDIR}:${SOCKSDIR}
     environment:
       - LOGF=${LCLDIR}/logs/srvauth.log
       - AUTHBASEURL=${AUTHBASEURL}

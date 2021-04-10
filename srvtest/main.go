@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 
@@ -11,10 +12,15 @@ func main() {
 	end := make(chan interface{}, 1)
 	defer close(end)
 	start, stop, err := utl.ListenOnUnixSocket("/var/local/eensymachines/sockets/halt.sock", func(c net.Conn) {
-		result := []byte{}
-		nr, _ := c.Read(result)
-		data := result[0:nr]
-		fmt.Println(string(data))
+		buf := make([]byte, 512)
+		nr, _ := c.Read(buf)
+		data := buf[0:nr]
+		Message := struct {
+			Auth bool `json:"auth"`
+			Reg  bool `json:"reg"`
+		}{}
+		json.Unmarshal(data, &Message)
+		fmt.Println(Message)
 		end <- struct{}{}
 	})
 	if err != nil {

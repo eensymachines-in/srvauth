@@ -64,6 +64,9 @@ func sendOverSock(m Message) {
 	}
 	// halt command is pushed to the socket, all the other microservices listening on the same socket will have to quit as well
 	data, _ := json.Marshal(m)
+	log.WithFields(log.Fields{
+		"msg": string(data),
+	}).Info("Now sending to socket")
 	c.Write(data)
 	// time to close this service
 	return
@@ -102,6 +105,8 @@ func RegisterDevice(fail func(), success func()) {
 		log.WithFields(log.Fields{
 			"reg_base_url": regUrl,
 		}).Error("Failed to contact server for registration, device may have lost internet connection")
+		fail()
+		return
 	}
 	if resp.StatusCode != 200 {
 		fail()
