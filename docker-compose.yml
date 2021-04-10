@@ -1,23 +1,38 @@
 version: '3'
 # this can be then plugged to a larger yml while where you want all the services to work in a swarm
 # here we are just making a file for a single service to run
+volumes:
+  gobin: 
+    driver: ${GOBINDIR}
+  sys: 
+    driver: /sys
+  timez: 
+    driver: ${TIMEZ}
+  lcltm: 
+    driver: ${LCLTM}
+  lcldir: 
+    driver: ${LCLDIR}
+  sockdir: 
+    driver: ${SOCKSDIR}
 services:
   srvauth:
-    build: /home/pi/eensymachines-in/srvauth
-    stop_grace_period: 2s
+    build: ${REPODIR}/srvauth
     volumes:
-      - "/home/pi/go/bin/:/home/pi/go/bin/"
-      - "/var/local/srvauth:/var/local/srvauth"
-      - "/sys:/sys" # for the go code to access it, we would need the acess to sys
-      - "/etc/timezone:/etc/timezone"
-      - "/etc/localtime:/etc/localtime"
+      - gobin:${GOBINDIR}
+      - sys:/sys
+      - timez:${TIMEZ}
+      - lcltm${LCLTM}
+      - lcldir${LCLDIR}
+      - sockdir${SOCKSDIR}
     environment:
-      - LOGF=/var/local/srvauth/device.log
-      - BASEURL=http://auth.eensymachines.in
-      - HALTSOCK=/var/local/srvauth/halt.sock
-      - USER=kneerunjun@gmail.com
-    tty: true
-    stdin_open: true
+      - LOGF=${LCLDIR}/logs/srvauth.log
+      - AUTHBASEURL=${AUTHBASEURL}
+      - REGBASEURL=${REGBASEURL}
+      - HALTSOCK=${SOCKSDIR}/halt.sock
+      - USER=${OWNER}
+      - RLYS=${RELAYS}
+    tty: ${TTYSTDIN}
+    stdin_open: ${TTYSTDIN}
     container_name: srvauth
     # command: ["tail", "-f", "/dev/null"]
-    command: ["/home/pi/eensymachines-in/srvauth/srvauth","-flog=false", "-verbose=true"]
+    command: ["${REPODIR}/srvauth/srvauth","-flog=${FLOG}", "-verbose=${VERBOSE}"]
