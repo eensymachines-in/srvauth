@@ -62,6 +62,11 @@ func RegisterDevice(makepl MakePayload, fail func(), success func()) {
 	// Getting the device registration
 	// for the device registration we need the user details
 	regUrl := os.Getenv("REGBASEURL")
+	// Here if the registration url is not set, it would mean the client does not want any regisrations to be checked
+	if regUrl == "" {
+		success()
+		return
+	}
 	payload, err := makepl()
 	if err != nil {
 		fail()
