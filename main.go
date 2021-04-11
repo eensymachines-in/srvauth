@@ -2,19 +2,17 @@ package main
 
 /*Microservices from the main line function will need a auxilliary microservice to verify registration and indicate accordingly
 If the device is registered, this microservice will just drop off letting others in the main line cotinue, while if there is a problem with the registration it drops a signal on a socket to stop all main line operations. This service also can self-register the device but that incase only when the device serial is not blacklisted.
-Incase the device serial is blacklisted, no registration and hence no further operation s*/
+Incase the device serial is blacklisted, no registration and hence no further operations
+This package here can authenticate the device with srvauth */
 import (
 	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
-	"net"
 	"net/http"
 	"os"
-	"strings"
 
 	auth "github.com/eensymachines-in/auth/v2"
-	"github.com/eensymachines-in/luminapi/core"
 	utl "github.com/eensymachines-in/utilities"
 	log "github.com/sirupsen/logrus"
 )
@@ -40,63 +38,34 @@ type Message struct {
 	Reg  bool `json:"reg"`
 }
 
-// haltService : drops the
-func sendOverSock(m Message) {
-	// NOTE: there are multiple sockets listed in haltsock
-	// this uService is capable of communicating to multiple such uServices for halting action
-	valEnv := os.Getenv("HALTSOCK")
-	if valEnv == "" {
-		log.WithFields(log.Fields{
-			"haltsocket": valEnv,
-		}).Error("Failed to connect to halt socket. Need location of atleast one socket")
-		return
-	}
-	haltSock := valEnv
-	/*We are trying out this phenomenon where multiple listeners are listening on the same halt socket
-	This microservice shall push the message on the same socket*/
-	c, err := net.Dial("unix", haltSock)
-	if err != nil {
-		// You need someone listening on the socket else this Dial action will fail
-		log.WithFields(log.Fields{
-			"err": err,
-		}).Panic("Failed to connect to unix socket")
-		return
-	}
-	// halt command is pushed to the socket, all the other microservices listening on the same socket will have to quit as well
-	data, _ := json.Marshal(m)
-	log.WithFields(log.Fields{
-		"msg": string(data),
-	}).Info("Now sending to socket")
-	c.Write(data)
-	// time to close this service
-	return
-}
-
-// Gets the device to register if not already, Send in the url and the relay ids
-func RegisterDevice(fail func(), success func()) {
-	// Getting the device registration
-	// for the device registration we need the user details
+// Gets the host device registration details using the user id loaded from environment
+func getDeviceReg() (*auth.DeviceReg, error) {
 	user := os.Getenv("USER")
 	if user == "" {
 		log.WithFields(log.Fields{
 			"user": user,
 		}).Error("Owner ID for the device invalid")
-		fail()
+		return nil, fmt.Errorf("getDeviceReg: failed")
 	}
 	reg, err := auth.ThisDeviceReg(user)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
 		}).Error("Error reading device registration")
+		return nil, fmt.Errorf("getDeviceReg: failed")
+	}
+	return reg, nil
+}
+
+// Gets the device to register if not already, Send in the url and the relay ids
+func RegisterDevice(makepl MakePayload, fail func(), success func()) {
+	// Getting the device registration
+	// for the device registration we need the user details
+	regUrl := os.Getenv("REGBASEURL")
+	payload, err := makepl()
+	if err != nil {
 		fail()
 		return
-	}
-	/*Forming url for regitrations, we need the url and list of relay ids*/
-	regUrl := os.Getenv("REGBASEURL")
-	rlys := os.Getenv("RLYS")
-	payload := &core.DevRegHttpPayload{
-		Serial:   reg.Serial,
-		RelayIDs: strings.Split(rlys, ","),
 	}
 	body, _ := json.Marshal(payload)
 	req, _ := http.NewRequest("POST", fmt.Sprintf("%s/", regUrl), bytes.NewBuffer(body))
@@ -131,18 +100,8 @@ func AuthenticateDevice(uponFail func(), uponOk func()) {
 		uponFail()
 		return
 	}
-	user := os.Getenv("USER")
-	if user == "" {
-		log.WithFields(log.Fields{
-			"user": user,
-		}).Error("Owner ID for the device invalid")
-		uponFail()
-	}
-	reg, err := auth.ThisDeviceReg(user)
+	reg, err := getDeviceReg()
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Error("Error reading device registration")
 		uponFail()
 		return
 	}
@@ -167,7 +126,7 @@ func AuthenticateDevice(uponFail func(), uponOk func()) {
 		uponFail()
 		return
 	}
-	if status.User != user {
+	if status.User != reg.User {
 		log.Error("Device ownership is invalid, cannot continue. Please contact an admin to reassign the device to a valid account")
 		uponFail()
 		return
@@ -195,7 +154,7 @@ func main() {
 	}, func() {
 		// When authentication succeeds
 		// we can proceed for registration check
-		RegisterDevice(func() {
+		RegisterDevice(MakeRegPayload, func() {
 			// registration has failed
 			sendOverSock(Message{Auth: true, Reg: false})
 			return
