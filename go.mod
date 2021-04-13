@@ -5,6 +5,7 @@ go 1.15
 require (
 	github.com/eensymachines-in/auth/v2 v2.0.5
 	github.com/eensymachines-in/errx v1.0.2 // indirect
+	github.com/eensymachines-in/scheduling v0.0.0-20210407150707-b909fe11cc31 // indirect
 	github.com/eensymachines-in/utilities v1.0.3
 	github.com/gin-gonic/gin v1.7.1 // indirect
 	github.com/go-playground/validator/v10 v10.5.0 // indirect

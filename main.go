@@ -3,7 +3,8 @@ package main
 /*Microservices from the main line function will need a auxilliary microservice to verify registration and indicate accordingly
 If the device is registered, this microservice will just drop off letting others in the main line cotinue, while if there is a problem with the registration it drops a signal on a socket to stop all main line operations. This service also can self-register the device but that incase only when the device serial is not blacklisted.
 Incase the device serial is blacklisted, no registration and hence no further operations
-This package here can authenticate the device with srvauth */
+This package here can authenticate the device with srvauth
+See the Wiki documentation for more details*/
 import (
 	"bytes"
 	"encoding/json"
@@ -61,6 +62,7 @@ func getDeviceReg() (*auth.DeviceReg, error) {
 func RegisterDevice(makepl MakePayload, fail func(), success func()) {
 	// Getting the device registration
 	// for the device registration we need the user details
+	log.Info("Now trying to verify registration of the device with luminapi...")
 	regUrl := os.Getenv("REGBASEURL")
 	// Here if the registration url is not set, it would mean the client does not want any regisrations to be checked
 	if regUrl == "" {
@@ -78,7 +80,7 @@ func RegisterDevice(makepl MakePayload, fail func(), success func()) {
 	if err != nil {
 		log.WithFields(log.Fields{
 			"reg_base_url": regUrl,
-		}).Error("Failed to contact server for registration, device may have lost internet connection")
+		}).Error("Failed to contact server for registration, device may have lost internet connection or the service on the cloud may not be running.")
 		fail()
 		return
 	}
@@ -86,11 +88,13 @@ func RegisterDevice(makepl MakePayload, fail func(), success func()) {
 		fail()
 		return
 	}
+	log.Info("Done registering the device withg luminapi")
 	success()
 	return
 }
 
 func AuthenticateDevice(uponFail func(), uponOk func()) {
+	log.Info("Now authenticating the device...")
 	baseURL := os.Getenv("AUTHBASEURL")
 	if baseURL == "" {
 		// If the base url
@@ -117,8 +121,7 @@ func AuthenticateDevice(uponFail func(), uponOk func()) {
 		return
 	}
 	if (auth.DeviceStatus{}) == *status {
-		log.Warn("Device is not registered on the cloud")
-		log.Info("Now attempting to register this device on the cloud")
+		log.Warn("Device is not registered on the cloud, Now attempting to register this device on the cloud")
 		if err := reg.Register(fmt.Sprintf("%s/devices", baseURL)); err != nil {
 			log.Errorf("Failed to register device %s", err)
 			uponFail()
@@ -136,6 +139,11 @@ func AuthenticateDevice(uponFail func(), uponOk func()) {
 		uponFail()
 		return
 	}
+	log.WithFields(log.Fields{
+		"serial": status.Serial,
+		"user":   status.User,
+		"lock":   status.Lock,
+	}).Info("Device authenticated")
 	uponOk()
 	return
 }
