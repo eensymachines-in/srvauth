@@ -35,8 +35,9 @@ func init() {
 
 // Its this message that this microservice will shuttle thru the socket
 type Message struct {
-	Auth bool `json:"auth"`
-	Reg  bool `json:"reg"`
+	Auth   bool   `json:"auth"`
+	Reg    bool   `json:"reg"`
+	Serial string `json:"serial"`
 }
 
 // Gets the host device registration details using the user id loaded from environment
@@ -93,7 +94,7 @@ func RegisterDevice(makepl MakePayload, fail func(), success func()) {
 	return
 }
 
-func AuthenticateDevice(uponFail func(), uponOk func()) {
+func AuthenticateDevice(uponFail func(string), uponOk func(string)) {
 	log.Info("Now authenticating the device...")
 	baseURL := os.Getenv("AUTHBASEURL")
 	if baseURL == "" {
@@ -101,42 +102,42 @@ func AuthenticateDevice(uponFail func(), uponOk func()) {
 		log.WithFields(log.Fields{
 			"auth_base_url": baseURL,
 		}).Error("Url for device authentication is invalid")
-		uponFail()
+		uponFail("")
 	}
 	_, err := http.Get(fmt.Sprintf("%s/ping", baseURL))
 	if err != nil {
 		log.Error("The device needs to be online on bootup, We tried pinging the uplink servers, could not reach. Check your WiFi and internet connectivity")
-		uponFail()
+		uponFail("")
 		return
 	}
 	reg, err := getDeviceReg()
 	if err != nil {
-		uponFail()
+		uponFail("")
 		return
 	}
 	status := &auth.DeviceStatus{}
 	if auth.DeviceStatusOnCloud(fmt.Sprintf("%s/devices/%s", baseURL, reg.Serial), status) != nil {
 		log.Error("Failed to query device status on cloud, servers are unreachable or busy")
-		uponFail()
+		uponFail(reg.Serial)
 		return
 	}
 	if (auth.DeviceStatus{}) == *status {
 		log.Warn("Device is not registered on the cloud, Now attempting to register this device on the cloud")
 		if err := reg.Register(fmt.Sprintf("%s/devices", baseURL)); err != nil {
 			log.Errorf("Failed to register device %s", err)
-			uponFail()
+			uponFail(reg.Serial)
 			return
 		}
 		return
 	}
 	if status.Lock {
 		log.Error("Device is locked by the admin, cannot continue. Please contact an admin to unlock the device")
-		uponFail()
+		uponFail(reg.Serial)
 		return
 	}
 	if status.User != reg.User {
 		log.Error("Device ownership is invalid, cannot continue. Please contact an admin to reassign the device to a valid account")
-		uponFail()
+		uponFail(reg.Serial)
 		return
 	}
 	log.WithFields(log.Fields{
@@ -144,7 +145,7 @@ func AuthenticateDevice(uponFail func(), uponOk func()) {
 		"user":   status.User,
 		"lock":   status.Lock,
 	}).Info("Device authenticated")
-	uponOk()
+	uponOk(reg.Serial)
 	return
 }
 
@@ -160,19 +161,19 @@ func main() {
 	flag.Parse()
 	closeLogFile := utl.CustomLog(Flog, FVerbose, logFile) // Log direction and the level of logging
 	defer closeLogFile()
-	AuthenticateDevice(func() {
+	AuthenticateDevice(func(serial string) {
 		// When authentication fails
-		sendOverSock(Message{Auth: false, Reg: false})
+		sendOverSock(Message{Auth: false, Reg: false, Serial: serial})
 		return
-	}, func() {
+	}, func(serial string) {
 		// When authentication succeeds
 		// we can proceed for registration check
 		RegisterDevice(MakeRegPayload, func() {
 			// registration has failed
-			sendOverSock(Message{Auth: true, Reg: false})
+			sendOverSock(Message{Auth: true, Reg: false, Serial: serial})
 			return
 		}, func() {
-			sendOverSock(Message{Auth: true, Reg: true})
+			sendOverSock(Message{Auth: true, Reg: true, Serial: serial})
 			return
 		})
 	})

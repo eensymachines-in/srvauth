@@ -3,6 +3,7 @@ module github.com/eensymachines-in/srvauth
 go 1.15
 
 require (
+	github.com/eclipse/paho.mqtt.golang v1.3.3 // indirect
 	github.com/eensymachines-in/auth/v2 v2.0.5
 	github.com/eensymachines-in/errx v1.0.2 // indirect
 	github.com/eensymachines-in/scheduling v0.0.0-20210407150707-b909fe11cc31 // indirect
