@@ -76,7 +76,7 @@ func RegisterDevice(makepl MakePayload, fail func(), success func()) {
 		return
 	}
 	body, _ := json.Marshal(payload)
-	req, _ := http.NewRequest("POST", fmt.Sprintf("%s/", regUrl), bytes.NewBuffer(body))
+	req, _ := http.NewRequest("POST", fmt.Sprintf("%s", regUrl), bytes.NewBuffer(body))
 	resp, err := (&http.Client{}).Do(req)
 	if err != nil {
 		log.WithFields(log.Fields{

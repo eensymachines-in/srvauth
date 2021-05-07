@@ -3,16 +3,23 @@ version: '3'
 # here we are just making a file for a single service to run
 services:
   srvauth:
-    build: ${REPODIR}/srvauth
+    build: 
+      context: .
+      dockerfile: Dockerfile
+      args: 
+        - SRC=${REPODIR}
+        - BIN=${BINDIR}
     volumes:
-      - ${GOBINDIR}:${GOBINDIR}
+      # - ${GOBINDIR}:${GOBINDIR}
+      - $GOPATH/pkg/mod:$GOPATH/pkg/mod
       - /sys:/sys
       - ${TIMEZ}:${TIMEZ}
       - ${LCLTM}:${LCLTM}
-      - ${LCLDIR}:${LCLDIR}
+      # map these 2 directories on the host machine
       - ${SOCKSDIR}:${SOCKSDIR}
+      - ${LOGDIR}:${LOGDIR}
     environment:
-      - LOGF=${LCLDIR}/logs/srvauth.log
+      - LOGF=${LOGDIR}/srvauth.log
       - AUTHBASEURL=${AUTHBASEURL}
       - REGBASEURL=${REGBASEURL}
       - HALTSOCK=${SOCKSDIR}/halt.sock
@@ -20,6 +27,6 @@ services:
       - RLYS=${RELAYS}
     tty: ${TTYSTDIN}
     stdin_open: ${TTYSTDIN}
-    container_name: srvauth
+    container_name: ctn_srvauth
     # command: ["tail", "-f", "/dev/null"]
-    command: ["${REPODIR}/srvauth/srvauth","-flog=${FLOG}", "-verbose=${VERBOSE}"]
+    command: ["${BINDIR}/srvauth","-flog=${FLOG}", "-verbose=${VERBOSE}"]
