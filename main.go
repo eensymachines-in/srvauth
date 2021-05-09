@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 
@@ -78,6 +79,7 @@ func RegisterDevice(makepl MakePayload, fail func(), success func()) {
 	body, _ := json.Marshal(payload)
 	req, _ := http.NewRequest("POST", fmt.Sprintf("%s", regUrl), bytes.NewBuffer(body))
 	resp, err := (&http.Client{}).Do(req)
+
 	if err != nil {
 		log.WithFields(log.Fields{
 			"reg_base_url": regUrl,
@@ -85,7 +87,13 @@ func RegisterDevice(makepl MakePayload, fail func(), success func()) {
 		fail()
 		return
 	}
+	defer resp.Body.Close()
+	body, err = ioutil.ReadAll(resp.Body)
 	if resp.StatusCode != 200 {
+		log.WithFields(log.Fields{
+			"Reg_resp_status": resp.StatusCode,
+			"body":            string(body),
+		}).Error("Failed to register device with lumin server")
 		fail()
 		return
 	}
@@ -128,6 +136,8 @@ func AuthenticateDevice(uponFail func(string), uponOk func(string)) {
 			uponFail(reg.Serial)
 			return
 		}
+		// If the registration was success, then no need to continue further steps
+		uponOk(reg.Serial)
 		return
 	}
 	if status.Lock {

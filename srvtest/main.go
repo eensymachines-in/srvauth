@@ -11,7 +11,7 @@ import (
 func main() {
 	end := make(chan interface{}, 1)
 	defer close(end)
-	start, stop, err := utl.ListenOnUnixSocket("/tmp/eensymachines/halt.sock", func(c net.Conn) {
+	start, stop, err := utl.ListenOnUnixSocket("/tmp/eensy.srvauth.sock", func(c net.Conn) {
 		buf := make([]byte, 512)
 		nr, _ := c.Read(buf)
 		data := buf[0:nr]

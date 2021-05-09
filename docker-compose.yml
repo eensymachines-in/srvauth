@@ -1,32 +1,35 @@
-version: '3'
+version: '3.5'
+# Please use version 3.5 since x-volume mount is not available on v3
 # this can be then plugged to a larger yml while where you want all the services to work in a swarm
 # here we are just making a file for a single service to run
+x-app: &default-app
+  build:
+    context: .
+    dockerfile: Dockerfile
+    args:
+      - SRC=${REPODIR}
+      - BIN=${BINDIR}
+  volumes:
+    # - ${GOBINDIR}:${GOBINDIR}
+    - $GOPATH/pkg/mod:$GOPATH/pkg/mod
+    - /sys:/sys
+    - ${TIMEZ}:${TIMEZ}
+    - ${LCLTM}:${LCLTM}
+    # map these 2 directories on the host machine
+    - ${SOCKSDIR}:${SOCKSDIR}
+    - ${LOGDIR}:${LOGDIR}
+  tty: ${TTYSTDIN}
+  stdin_open: ${TTYSTDIN}
 services:
   srvauth:
-    build: 
-      context: .
-      dockerfile: Dockerfile
-      args: 
-        - SRC=${REPODIR}
-        - BIN=${BINDIR}
-    volumes:
-      # - ${GOBINDIR}:${GOBINDIR}
-      - $GOPATH/pkg/mod:$GOPATH/pkg/mod
-      - /sys:/sys
-      - ${TIMEZ}:${TIMEZ}
-      - ${LCLTM}:${LCLTM}
-      # map these 2 directories on the host machine
-      - ${SOCKSDIR}:${SOCKSDIR}
-      - ${LOGDIR}:${LOGDIR}
+    <<: *default-app
     environment:
       - LOGF=${LOGDIR}/srvauth.log
       - AUTHBASEURL=${AUTHBASEURL}
       - REGBASEURL=${REGBASEURL}
-      - HALTSOCK=${SOCKSDIR}/halt.sock
+      - HALTSOCK=${SOCKSDIR}/eensy.srvauth.sock
       - USER=${OWNER}
       - RLYS=${RELAYS}
-    tty: ${TTYSTDIN}
-    stdin_open: ${TTYSTDIN}
     container_name: ctn_srvauth
     # command: ["tail", "-f", "/dev/null"]
     command: ["${BINDIR}/srvauth","-flog=${FLOG}", "-verbose=${VERBOSE}"]
