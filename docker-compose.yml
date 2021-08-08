@@ -30,6 +30,7 @@ services:
       - HALTSOCK=${SOCKSDIR}/eensy.srvauth.sock
       - USER=${OWNER}
       - RLYS=${RELAYS}
+      - RLYDFN=${RLYDFN}
     container_name: ctn_srvauth
     # command: ["tail", "-f", "/dev/null"]
     command: ["${BINDIR}/srvauth","-flog=${FLOG}", "-verbose=${VERBOSE}"]

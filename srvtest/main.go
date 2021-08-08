@@ -2,10 +2,11 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net"
 
+	core "github.com/eensymachines-in/lumincore"
 	utl "github.com/eensymachines-in/utilities"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -15,12 +16,15 @@ func main() {
 		buf := make([]byte, 512)
 		nr, _ := c.Read(buf)
 		data := buf[0:nr]
-		Message := struct {
-			Auth bool `json:"auth"`
-			Reg  bool `json:"reg"`
-		}{}
-		json.Unmarshal(data, &Message)
-		fmt.Println(Message)
+		Message := &core.SchedSockMessage{}
+		json.Unmarshal(data, Message)
+		log.WithFields(log.Fields{
+			"serial": core.ISockMessage(Message).Serial(),
+			"pass":   core.ISockMessage(Message).Pass(),
+			"scheds": core.ISchedSockMsg(Message).JRStates(),
+			"auth":   core.IAuthSockMsg(Message).IsAuthPass(),
+			"reg":    core.IAuthSockMsg(Message).IsRegPass(),
+		}).Info("We have received message on the socket")
 		end <- struct{}{}
 	})
 	if err != nil {
