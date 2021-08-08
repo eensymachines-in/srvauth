@@ -67,7 +67,10 @@ func RegisterDevice(makepl MakePayload, fail func(core.ISockMessage), success fu
 	}
 	payload, err := makepl()
 	if err != nil {
-		fail(nil)
+		log.WithFields(log.Fields{
+			"err_payload": err,
+		}).Error("Failed to make payload for registering the device: Will not continue to verify registeration")
+		fail(&core.SockMessage{Reg: false})
 		return
 	}
 	body, _ := json.Marshal(payload)
@@ -75,10 +78,13 @@ func RegisterDevice(makepl MakePayload, fail func(core.ISockMessage), success fu
 	resp, err := (&http.Client{}).Do(req)
 
 	if err != nil {
+		// Error here would mean the request for registration did not go thru
 		log.WithFields(log.Fields{
 			"reg_base_url": regUrl,
+			"reponse_err":  err,
 		}).Error("Failed to contact server for registration, device may have lost internet connection or the service on the cloud may not be running.")
-		fail(nil)
+		// Changing this from nil to &core.SockMessage, refer to issue #2
+		fail(&core.SockMessage{Reg: false})
 		return
 	}
 	defer resp.Body.Close()
